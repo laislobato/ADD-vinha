@@ -1,42 +1,75 @@
 import { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView, StyleSheet, Text, View, TextInput, TouchableOpacity, Keyboard, Button } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, View, TextInput, TouchableOpacity, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
+
 
 export default function App() {
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
   const [numeroSecreto, setNS] = useState(null);
   const [palpite, setP] = useState(null);
   const [tentativas, setT] = useState(null);
 
   const [message, setMessage] = useState(null);
-  const [message1, setMessage1] = useState("Qual o numero de 0 a 100?");
 
 
 
-  function validarPalpite() {
-    while (palpite !== numeroSecreto) {
-      let numeroSecreto = Math.floor(Math.random() * 100) + 1;
-      let palpite = 0;
+  
+  useEffect(() => {
+    // Gera o número secreto quando o app carrega
+    const numero = Math.floor(Math.random() * 100) + 1;
+    setNS(numero);
 
-      palpite = parseInt(setMessage1("Digite um numero entre 1 e 100"));
+    const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+    const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+  
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
 
-      if(tentativas <= 5){
-        if (palpite > numeroSecreto) {
-            setMessage("O número é menor que "+ palpite)
-        }
-        else if (palpite < numeroSecreto) {
-          setMessage("O número é maior que "+ palpite)
-        }
-        else if (palpite = numeroSecreto) {
-          setMessage("Parabéns você acertou o número, ele é "+ numeroSecreto)
-          return;
-        }
-      }
+  }, []);
+
+  
+
+  const validarPalpite = () => {
+    Keyboard.dismiss();
+    const palpiteInt = parseInt(palpite);
+
+
+    setT(tentativas + 1);
+
+    if (palpiteInt > numeroSecreto && palpiteInt >= 1 && palpiteInt <= 100) {
+      setMessage("O número é menor que "+ palpite);
+    } else if (palpiteInt < numeroSecreto && palpiteInt >= 1 && palpiteInt <= 100) {
+      setMessage("O número é maior que "+ palpite);
+    } else if (palpiteInt === numeroSecreto){
+      setMessage(`Parabéns! Você acertou em ${tentativas + 1} tentativas. O numero é `+ palpite);
+      // Gera um novo número secreto para continuar jogando
+      setNS(Math.floor(Math.random() * 100) + 1);
+      setT(null);
+    }
       else{
-        setMessage("Acabou as tentativas! tente novamente!")
+        setMessage("Digite um número válido!");
+        setP(null);
         return;
       }
-    }
-  }
+
+    setP(null);
+
+    };
+    const restart = () => {
+      setNS(null);
+      setP(null);
+      setT(null);
+      setMessage(null);
+      return;
+  };
+
 
 
   return (
@@ -45,7 +78,7 @@ export default function App() {
     <View style={styles.content}>
 
       <View style= {styles.titleBox}>
-        <Text style={styles.title}>Qual o Número de 0 a 100?</Text>
+        <Text style={styles.title}>Qual o Número de 1 a 100?</Text>
       </View>
 
       <View> 
@@ -53,26 +86,39 @@ export default function App() {
             <TextInput
               style={styles.input}
               onChangeText={setP}
-              value={palpite ?? ''}
+              value={palpite ?? ''}  // isso é importante!
               placeholder='1 a 100'
               keyboardType='numeric'
             />
+
       </View>
 
       <View>
 
-      <TouchableOpacity
-          style={styles.button}
-          onPress={() => validarPalpite()}
-          >
-            <Text style={styles.text}>Validar</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+            style={styles.button}
+            onPress={() => validarPalpite()}
+            >
+              <Text style={styles.text}>Validar</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.textContainer}>
-           <Text style={styles.palpite}>{palpite}</Text>
-           <Text style={styles.message}>{message}</Text>
-          </View>
+          <Text style={styles.message}>{message}</Text>
+      </View>
+
+      {!keyboardVisible && (
+  <View style={styles.containerRestart}>
+    <TouchableOpacity
+      style={styles.buttonRestart}
+      onPress={restart}
+    >
+      <Text style={styles.text}>Restart</Text>
+    </TouchableOpacity>
+  </View>
+)}
+
+
 
     </View>
     </SafeAreaView>
@@ -95,13 +141,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#edf2f',
   },
 
-  
   titleBox: {
     alignItems: 'center',
     justifyContent: 'flex-end',
     height: 130,
     borderBottomStartRadius: 25,
     borderBottomEndRadius: 25,
+    marginBottom: 20,
   },
 
   title: {
@@ -110,27 +156,47 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 18,
+    fontSize: 20,
   },
 
   input: {
     color: '#180902',
-    height: 45,
+    height: 58,
     width: '100%',
-    borderColor: '#7A77FC',
+    borderColor: '#2ebdff',
     borderBottomWidth: 1.5,
     borderRadius: 5,
-    fontSize: 16,
+    fontSize: 20,
     marginBottom: 0,
   },
 
   button: {
     width:'100%',
+    backgroundColor: '#2ebdff',
+    borderRadius: 20,
     paddingVertical: 15,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fffff',
+    borderRadius: 20,
+    marginTop: 40,
+    marginBottom: 15,
+  },
+
+  containerRestart: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center', 
+
+  },
+
+  buttonRestart: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width:'65%',
+    backgroundColor: '#617178',
+    borderRadius: 20,
+    paddingVertical: 15,
     borderRadius: 20,
     marginTop: 40,
     marginBottom: 15,
@@ -138,19 +204,20 @@ const styles = StyleSheet.create({
 
   text: {
     fontSize: 20,
-  },
-
-  palpite: {
-    fontSize: 18,
-    color: '#',
     fontWeight: 'bold',
-    alignItems: 'center',
+    color: '#fff',
+  },
+  textRestart: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
   },
 
   message: {
-    fontSize: 48,
+    fontSize: 26,
     color: '#',
     fontWeight: 'bold',
+    textAlign: 'center',
   },
 
 });
